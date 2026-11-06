@@ -1,0 +1,25 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+env/
+database/serviceAccountKey.json
+*serviceAccountKey*.json
+*.sqlite3-journal
+# Bases de datos locales: contienen datos personales de estudiantes.
+*.db
+*.sqlite
+*.sqlite3
+# Archivos temporales del modo WAL de SQLite (también contienen datos personales).
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+logs/
+*.log
+dataclass_*.zip

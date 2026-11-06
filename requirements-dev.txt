@@ -1,0 +1,5 @@
+# Para desarrollar y correr las pruebas:  python -m pytest -q
+-r requirements.txt
+iniconfig==2.3.1
+pluggy==1.7.0
+pytest==9.1.1

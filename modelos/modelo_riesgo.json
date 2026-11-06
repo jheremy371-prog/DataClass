@@ -1,0 +1,16 @@
+{
+  "version_modelo": "rf-20261023-sintetico",
+  "fecha_entrenamiento": "2026-10-23T19:56:21+00:00",
+  "origen_datos": "sintético (demostración)",
+  "sintetico": true,
+  "n_filas": 10,
+  "n_abandono": 5,
+  "columnas": [
+    "Notas_Detalladas",
+    "Registro_Asistencia"
+  ],
+  "sklearn_version": "1.9.1",
+  "metricas_validacion_cruzada": null,
+  "advertencia": "Entrenado con datos sintéticos de demostración; no usar para decidir sobre estudiantes.",
+  "sha256_pkl": "fe1dfb6e764c58586c8af38933b208df6d92be030eae90c9afb0e385eb09ebb8"
+}

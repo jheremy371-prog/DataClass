@@ -1,0 +1,17 @@
+# Copiar como .streamlit/config.toml en la raíz del proyecto (junto a app.py).
+# Fuerza el tema claro aunque el navegador/Windows esté en modo oscuro.
+[theme]
+base = "light"
+primaryColor = "#1769AA"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#EAF4FC"
+textColor = "#172B4D"
+font = "sans serif"
+
+[client]
+# Oculta el botón "Deploy" y deja solo el menú mínimo.
+toolbarMode = "minimal"
+
+[server]
+# La API admite 5 MB por archivo; evita que Streamlit acepte hasta 200 MB.
+maxUploadSize = 5

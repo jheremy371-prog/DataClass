@@ -1,0 +1,51 @@
+# Caddy como proxy inverso con HTTPS automático (certificados Let's Encrypt, renovación incluida).
+# Sustituye el dominio por el tuyo; debe apuntar (DNS) al servidor y tener abiertos los puertos 80 y 443.
+# Solo Streamlit queda expuesto. La API escucha en 127.0.0.1:8000 y NO se publica: Streamlit la consulta desde el servidor.
+
+dataclass.tu-institucion.edu.pe {
+	encode gzip
+
+	# Tope de tamaño de lo que se envía al servidor (las cargas masivas permiten hasta 5 MB por archivo).
+	request_body {
+		max_size 10MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		# Política de contenido. Streamlit necesita 'unsafe-inline' y 'unsafe-eval', así que esta política no frena
+		# todo el XSS, pero sí impide cargar scripts de otros sitios, incrustar la app en otra página y enviar
+		# formularios a terceros. Empieza en modo «solo informar»: abre la app, revisa la consola del navegador
+		# (F12) y, si no aparece ninguna infracción al usarla, cambia el nombre a Content-Security-Policy.
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' wss:; frame-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		-Server
+	}
+
+	# Límite de peticiones por IP: Caddy no lo trae de serie. Requiere compilar Caddy con el módulo
+	# github.com/mholt/caddy-ratelimit (xcaddy build --with github.com/mholt/caddy-ratelimit). Ejemplo:
+	#
+	# rate_limit {
+	#	zone por_ip {
+	#		key    {remote_host}
+	#		events 120
+	#		window 1m
+	#	}
+	# }
+	#
+	# Mientras tanto, el login ya se bloquea por intentos fallidos dentro de la API (5 por correo y 30 por IP cada 5 min).
+
+	# Streamlit usa WebSockets; Caddy los soporta sin configuración adicional.
+	reverse_proxy 127.0.0.1:8501
+}
+
+# Solo si algún día publicas la API (por ejemplo, para una app móvil), descomenta este bloque y arranca uvicorn con
+#   --proxy-headers --forwarded-allow-ips 127.0.0.1
+# para que la IP real del cliente llegue al limitador de intentos y a la bitácora.
+#
+# api.tu-institucion.edu.pe {
+#	encode gzip
+#	reverse_proxy 127.0.0.1:8000
+# }
