@@ -2,6 +2,13 @@
 
 Formato: lo más reciente arriba. Las versiones siguen la auditoría técnica del proyecto (H = alto, M = medio, N = nuevo, L = bajo).
 
+## 1.10.1 — 6 de noviembre de 2026 (H-01 del informe v1.1)
+
+### Seguridad
+- **H-01 · El token de sesión ya no se guarda en una cookie legible por JavaScript.** Por defecto la sesión vive solo en `st.session_state`; al recargar la página hay que iniciar sesión de nuevo. Una cookie escrita con JavaScript nunca puede ser `HttpOnly`, así que ante un XSS el token se podía robar. Si en el navegador queda la cookie `dc_token` de una versión anterior, se borra y no se usa. Quien acepte el riesgo puede volver al comportamiento anterior con `DATACLASS_SESION_PERSISTENTE=1`.
+- Sin cambios en la API: la revocación por `jti`, el `token_version` y la expiración a las 8 h siguen igual.
+- **Aviso:** `app.py` no tiene pruebas automáticas; verifica a mano en el navegador (inicia sesión, recarga la página y comprueba que `document.cookie` no incluye `dc_token`) y corre `python -m pytest` para confirmar que la suite sigue en verde.
+
 ## 1.10.0 — 30 de octubre de 2026 (Fases 1 y 2 del plan)
 
 ### Datos personales (H-03, M-08, H-02)

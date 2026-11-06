@@ -106,9 +106,20 @@ def cabeceras_ip_cliente():
 
 COOKIE_SESION = "dc_token"
 
+# H-01 (informe v1.1): una cookie escrita con JavaScript no puede ser HttpOnly, así que cualquier script del mismo
+# origen podría leer el token. Por defecto la sesión ya NO se guarda en el navegador: vive solo en st.session_state
+# y se pierde al recargar la página (hay que volver a iniciar sesión). Con DATACLASS_SESION_PERSISTENTE=1 se
+# restaura el comportamiento anterior (cookie de 8 h, SameSite=Strict, Secure bajo HTTPS), con ese riesgo.
+SESION_PERSISTENTE = os.getenv("DATACLASS_SESION_PERSISTENTE", "0").strip() == "1"
+
 
 def _programar_cookie(accion, token=None):
-    """Pide escribir/borrar la cookie de sesión en la próxima ejecución (donde sí se dibuja el iframe)."""
+    """Pide escribir/borrar la cookie de sesión en la próxima ejecución (donde sí se dibuja el iframe).
+
+    Sin sesión persistente nunca se escribe el token en el navegador; solo se permite borrar.
+    """
+    if accion == "guardar" and not SESION_PERSISTENTE:
+        return
     st.session_state["_cookie_op"] = (accion, token)
 
 
@@ -171,6 +182,10 @@ def restaurar_sesion_desde_cookie():
     except Exception:
         token = None
     if not token:
+        return
+    if not SESION_PERSISTENTE:
+        # Cookie de una versión anterior: no se usa para restaurar la sesión y se borra del navegador.
+        _programar_cookie("borrar")
         return
     try:
         r = requests.get(f"{API_URL}/auth/sesion", headers={"Authorization": f"Bearer {token}", **cabeceras_ip_cliente()}, timeout=8)
