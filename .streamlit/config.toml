@@ -15,3 +15,6 @@ toolbarMode = "minimal"
 [server]
 # La API admite 5 MB por archivo; evita que Streamlit acepte hasta 200 MB.
 maxUploadSize = 5
+
+[browser]
+gatherUsageStats = false

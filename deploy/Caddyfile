@@ -1,51 +1,89 @@
-# Caddy como proxy inverso con HTTPS automático (certificados Let's Encrypt, renovación incluida).
-# Sustituye el dominio por el tuyo; debe apuntar (DNS) al servidor y tener abiertos los puertos 80 y 443.
-# Solo Streamlit queda expuesto. La API escucha en 127.0.0.1:8000 y NO se publica: Streamlit la consulta desde el servidor.
+# DataClass · una institución · web (Streamlit) + API para la app móvil, detrás de Caddy con HTTPS automático.
+#
+# Antes de usarlo:
+#   1. Sustituye «tudominio.pe» por tu dominio real y crea dos registros DNS hacia la IP del servidor:
+#        dataclass.tudominio.pe   (web)
+#        api.tudominio.pe         (API para la app móvil)
+#   2. Abre solo los puertos 80 y 443. Streamlit (8501) y la API (8000) escuchan solo en 127.0.0.1.
+#   3. Arranca uvicorn con:  --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1
+#      y Streamlit con:      --server.address 127.0.0.1 --server.port 8501 --server.headless true
+#   4. En .env: DATACLASS_FORZAR_HTTPS=1 (cuando ya responda por HTTPS) y DATACLASS_DOCS=0.
 
-dataclass.tu-institucion.edu.pe {
+# --- Opciones globales (opcionales) -------------------------------------------------------------------------------
+# {
+#	email tu-correo@tudominio.pe          # aviso de Let's Encrypt si falla una renovación
+#	order rate_limit before basicauth     # solo si compilas Caddy con el módulo de límite de peticiones (ver abajo)
+# }
+
+# Cabeceras comunes a la web y a la API.
+(cabeceras_base) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		-Server
+	}
+}
+
+# --- Web para directivos y docentes (Streamlit) ------------------------------------------------------------------
+dataclass.tudominio.pe {
+	import cabeceras_base
 	encode gzip
 
-	# Tope de tamaño de lo que se envía al servidor (las cargas masivas permiten hasta 5 MB por archivo).
+	# Tope de tamaño (las cargas masivas permiten hasta 5 MB por archivo).
 	request_body {
 		max_size 10MB
 	}
 
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
-		Referrer-Policy "no-referrer"
-		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
-		# Política de contenido. Streamlit necesita 'unsafe-inline' y 'unsafe-eval', así que esta política no frena
-		# todo el XSS, pero sí impide cargar scripts de otros sitios, incrustar la app en otra página y enviar
-		# formularios a terceros. Empieza en modo «solo informar»: abre la app, revisa la consola del navegador
-		# (F12) y, si no aparece ninguna infracción al usarla, cambia el nombre a Content-Security-Policy.
+		# Empieza en modo «solo informar»: usa la app, mira la consola del navegador (F12) y, si no aparece ninguna
+		# infracción, cambia el nombre a Content-Security-Policy para que bloquee.
 		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' wss:; frame-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
-		-Server
 	}
 
-	# Límite de peticiones por IP: Caddy no lo trae de serie. Requiere compilar Caddy con el módulo
-	# github.com/mholt/caddy-ratelimit (xcaddy build --with github.com/mholt/caddy-ratelimit). Ejemplo:
-	#
 	# rate_limit {
-	#	zone por_ip {
+	#	zone web_por_ip {
 	#		key    {remote_host}
 	#		events 120
 	#		window 1m
 	#	}
 	# }
-	#
-	# Mientras tanto, el login ya se bloquea por intentos fallidos dentro de la API (5 por correo y 30 por IP cada 5 min).
 
 	# Streamlit usa WebSockets; Caddy los soporta sin configuración adicional.
 	reverse_proxy 127.0.0.1:8501
 }
 
-# Solo si algún día publicas la API (por ejemplo, para una app móvil), descomenta este bloque y arranca uvicorn con
-#   --proxy-headers --forwarded-allow-ips 127.0.0.1
-# para que la IP real del cliente llegue al limitador de intentos y a la bitácora.
-#
-# api.tu-institucion.edu.pe {
-#	encode gzip
-#	reverse_proxy 127.0.0.1:8000
-# }
+# --- API REST para la app móvil -----------------------------------------------------------------------------------
+api.tudominio.pe {
+	import cabeceras_base
+	encode gzip
+
+	request_body {
+		max_size 10MB
+	}
+
+	# Respuestas con datos personales: que ningún intermediario las guarde en caché.
+	header Cache-Control "no-store"
+
+	# La API ya oculta su documentación con DATACLASS_DOCS=0; esto es una segunda barrera.
+	@documentacion path /docs /docs/* /redoc /redoc/* /openapi.json
+	respond @documentacion 404
+
+	# Límite de peticiones por IP. Caddy no lo trae de serie: hay que compilarlo con
+	#   xcaddy build --with github.com/mholt/caddy-ratelimit
+	# y activar «order rate_limit before basicauth» en las opciones globales de arriba. Con la API pública es
+	# la medida más importante de este archivo; mientras no esté, el login solo se frena dentro de la API
+	# (5 intentos por correo y 30 por IP cada 5 minutos).
+	#
+	# rate_limit {
+	#	zone api_por_ip {
+	#		key    {remote_host}
+	#		events 60
+	#		window 1m
+	#	}
+	# }
+
+	reverse_proxy 127.0.0.1:8000
+}
