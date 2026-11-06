@@ -23,3 +23,9 @@ database/serviceAccountKey.json
 logs/
 *.log
 dataclass_*.zip
+# Cachés de herramientas
+.ruff_cache/
+.mypy_cache/
+# Copias de seguridad (contienen datos personales)
+respaldos/
+*.dcbak

@@ -13,6 +13,8 @@ font = "sans serif"
 toolbarMode = "minimal"
 
 [server]
+# Solo loopback: el único punto público debe ser Caddy (HTTPS). Informe de auditoría, H-02.
+address = "127.0.0.1"
 # La API admite 5 MB por archivo; evita que Streamlit acepte hasta 200 MB.
 maxUploadSize = 5
 

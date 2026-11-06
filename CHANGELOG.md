@@ -2,6 +2,23 @@
 
 Formato: lo más reciente arriba. Las versiones siguen la auditoría técnica del proyecto (H = alto, M = medio, N = nuevo, L = bajo).
 
+## 1.10.2 — 6 de noviembre de 2026 (cierre de pendientes del informe v1.1)
+
+### Seguridad y despliegue
+- `.streamlit/config.toml`: Streamlit escucha solo en `127.0.0.1` (el único punto público debe ser Caddy).
+- Nuevo `api/respaldo.py`: copia de seguridad **cifrada** (`python -m api.respaldo crear|verificar|restaurar`), con clave `DATACLASS_RESPALDO_CLAVE`. No sobrescribe una base existente. Las conexiones SQLite se cierran con `closing()`: en Windows `with sqlite3.connect()` no cierra el archivo y el directorio temporal quedaba bloqueado.
+- Nuevo `.github/workflows/ci.yml`: pytest con cobertura, `pip-audit` y escaneo de secretos (gitleaks) en cada push y PR.
+- `.gitignore`: se añaden `.ruff_cache/`, `.mypy_cache/`, `respaldos/` y `*.dcbak`. `empaquetar.py` los excluye y aplica los patrones de claves a cualquier extensión.
+
+### Dependencias (resultado de `pip-audit`)
+- `pillow` 12.3.0 → 13.0.0, `certifi` 2026.7.22 → 2026.10.18, `python-dotenv` 1.1.1 → 1.2.2.
+- Pillow 13 exige `streamlit` 1.67.0 (la 1.66.0 pedía `pillow<13`), que también se actualiza. `pip check` sin conflictos y 337 pruebas pasan.
+
+### Pruebas
+- `tests/test_cobertura_endpoints.py`: recorre todas las rutas; ninguna responde sin sesión (salvo login y `/estado`) y un docente recibe 403 en todo lo reservado a directivos.
+- `tests/test_valores_por_defecto_seguros.py`: fija modo demo, cookie persistente y `/docs` apagados por defecto.
+- `tests/test_respaldo.py`: cifrado, restauración, clave incorrecta.
+
 ## 1.10.1 — 6 de noviembre de 2026 (H-01 del informe v1.1)
 
 ### Seguridad

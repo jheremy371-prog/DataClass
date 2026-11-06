@@ -11,10 +11,10 @@ import zipfile
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent
-CARPETAS_EXCLUIDAS = {"env", ".venv", "venv", "__pycache__", ".pytest_cache", ".git", "logs", "node_modules"}
+CARPETAS_EXCLUIDAS = {"env", ".venv", "venv", "__pycache__", ".pytest_cache", ".git", "logs", "node_modules", ".ruff_cache", ".mypy_cache", "respaldos"}
 # -wal y -shm: archivos temporales del modo WAL de SQLite; contienen datos personales igual que la base.
 SUFIJOS_EXCLUIDOS = {".db", ".sqlite", ".sqlite3", ".db-wal", ".db-shm", ".sqlite-wal", ".sqlite-shm", ".sqlite3-wal", ".sqlite3-shm",
-                     ".log", ".pyc", ".zip", ".pem", ".key"}
+                     ".log", ".pyc", ".zip", ".pem", ".key", ".dcbak"}
 NOMBRES_EXCLUIDOS = {".env"}
 PATRONES_SECRETOS = ("serviceaccountkey", "service-account", "credentials", "firebase-adminsdk")
 
@@ -28,7 +28,7 @@ def debe_omitirse(ruta: Path) -> str | None:
         return "variables de entorno"
     if ruta.suffix.lower() in SUFIJOS_EXCLUIDOS:
         return "datos/archivo excluido"
-    if nombre.endswith(".json") and any(p in nombre for p in PATRONES_SECRETOS):
+    if any(p in nombre for p in PATRONES_SECRETOS):
         return "posible clave privada"
     return None
 
